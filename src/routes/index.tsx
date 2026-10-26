@@ -46,6 +46,7 @@ function Index() {
   const [listas, setListas] = useState<string[]>(["Geral"]);
   const [telefone, setTelefone] = useState("");
   const [carregado, setCarregado] = useState(false);
+  const [tema, setTema] = useState<"claro" | "escuro">("escuro");
 
   const [texto, setTexto] = useState("");
   const [prioridade, setPrioridade] = useState<Prioridade>("media");
