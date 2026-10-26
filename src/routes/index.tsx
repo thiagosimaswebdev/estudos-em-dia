@@ -46,6 +46,7 @@ function Index() {
   const [listas, setListas] = useState<string[]>(["Geral"]);
   const [telefone, setTelefone] = useState("");
   const [carregado, setCarregado] = useState(false);
+  const [tema, setTema] = useState<"claro" | "escuro">("escuro");
 
   const [texto, setTexto] = useState("");
   const [prioridade, setPrioridade] = useState<Prioridade>("media");
@@ -62,12 +63,20 @@ function Index() {
       if (d.tarefas) setTarefas(d.tarefas);
       if (d.listas?.length) setListas(d.listas);
       if (d.telefone) setTelefone(d.telefone);
+      if (d.tema === "claro" || d.tema === "escuro") setTema(d.tema);
     } catch {}
     setCarregado(true);
   }, []);
   useEffect(() => {
-    if (carregado) localStorage.setItem("organizador", JSON.stringify({ tarefas, listas, telefone }));
-  }, [tarefas, listas, telefone, carregado]);
+    if (carregado)
+      localStorage.setItem(
+        "organizador",
+        JSON.stringify({ tarefas, listas, telefone, tema }),
+      );
+  }, [tarefas, listas, telefone, tema, carregado]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", tema === "escuro");
+  }, [tema]);
 
   const semana = useMemo(() => {
     const hoje = new Date();
@@ -146,7 +155,14 @@ function Index() {
   return (
     <main className="min-h-screen bg-tech-grid px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="text-center">
+        <header className="relative text-center">
+          <button
+            onClick={() => setTema(tema === "escuro" ? "claro" : "escuro")}
+            aria-label={tema === "escuro" ? "Ativar modo claro" : "Ativar modo escuro"}
+            className="absolute right-0 top-0 rounded-full border border-border bg-secondary/60 px-3 py-2 text-sm text-foreground transition-colors hover:border-primary/60 hover:text-primary sm:px-4"
+          >
+            {tema === "escuro" ? "☀ Modo claro" : "☾ Modo escuro"}
+          </button>
           <p className="text-xs uppercase tracking-[0.3em] text-primary">// painel de estudos</p>
           <h1 className="mt-2 bg-gradient-tech bg-clip-text text-3xl font-bold text-transparent sm:text-5xl">
             Meu Organizador de Estudos
@@ -248,7 +264,7 @@ function Index() {
                 <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center">
                   <label className="flex items-center gap-2">
                     <span className="text-muted-foreground">Agendar para:</span>
-                    <input type="datetime-local" value={agenda} onChange={(e) => setAgenda(e.target.value)} className="input-tech py-2 text-sm [color-scheme:dark]" />
+                    <input type="datetime-local" value={agenda} onChange={(e) => setAgenda(e.target.value)} className={`input-tech py-2 text-sm ${tema === "escuro" ? "[color-scheme:dark]" : ""}`} />
                   </label>
                   <label className={`flex items-center gap-2 ${agenda ? "" : "opacity-50"}`}>
                     <input type="checkbox" disabled={!agenda} checked={lembrete} onChange={(e) => setLembrete(e.target.checked)} className="h-4 w-4 accent-primary" />
