@@ -3,8 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
 
 function headers() {
-  const lovable = process.env.LOVABLE_API_KEY;
-  const twilio = process.env.TWILIO_API_KEY;
+  const lovable = process.env["LOVABLE_API_KEY"];
+  const twilio = process.env["TWILIO_API_KEY"];
   if (!lovable) throw new Error("LOVABLE_API_KEY não configurada");
   if (!twilio) throw new Error("Twilio não conectado");
   return {

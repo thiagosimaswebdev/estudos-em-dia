@@ -22,11 +22,11 @@ type Tarefa = {
   texto: string;
   concluida: boolean;
   criadaEm: string;
-  agendadaPara?: string;
+  agendadaPara?: string | undefined;
   prioridade: Prioridade;
   lista: string;
-  smsSid?: string | null;
-  smsStatus?: string;
+  smsSid?: string | null | undefined;
+  smsStatus?: string | undefined;
 };
 
 const PRIORIDADES: { valor: Prioridade; rotulo: string; classe: string }[] = [
