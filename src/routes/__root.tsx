@@ -94,6 +94,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    scripts: [
+      {
+        children:
+          'try{var d=JSON.parse(localStorage.getItem("organizador")||"{}");if(d.tema!=="claro"){document.documentElement.classList.add("dark")}}catch(e){document.documentElement.classList.add("dark")}',
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
