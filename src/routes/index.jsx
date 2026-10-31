@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { scheduleSms, cancelSms } from "@/lib/sms.functions";
 
 export const Route = createFileRoute("/")({
@@ -16,46 +16,36 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Prioridade = "alta" | "media" | "baixa";
-type Tarefa = {
-  id: number;
-  texto: string;
-  concluida: boolean;
-  criadaEm: string;
-  agendadaPara?: string | undefined;
-  prioridade: Prioridade;
-  lista: string;
-  smsSid?: string | null | undefined;
-  smsStatus?: string | undefined;
-};
-
-const PRIORIDADES: { valor: Prioridade; rotulo: string; classe: string }[] = [
+const PRIORIDADES = [
   { valor: "alta", rotulo: "Alta", classe: "bg-priority-high/15 text-priority-high border-priority-high/40" },
   { valor: "media", rotulo: "Média", classe: "bg-priority-medium/15 text-priority-medium border-priority-medium/40" },
   { valor: "baixa", rotulo: "Baixa", classe: "bg-priority-low/15 text-priority-low border-priority-low/40" },
 ];
-const BARRA: Record<Prioridade, string> = { alta: "bg-priority-high", media: "bg-priority-medium", baixa: "bg-priority-low" };
+const BARRA = { alta: "bg-priority-high", media: "bg-priority-medium", baixa: "bg-priority-low" };
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-const fmt = (iso: string) =>
+const fmt = (iso) =>
   new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-const mesmoDia = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+const mesmoDia = (a, b) => a.toDateString() === b.toDateString();
 
 function Index() {
-  const [tarefas, setTarefas] = useState<Tarefa[]>([]);
-  const [listas, setListas] = useState<string[]>(["Geral"]);
+  const [tarefas, setTarefas] = useState([]);
+  const [listas, setListas] = useState(["Geral"]);
   const [telefone, setTelefone] = useState("");
   const [carregado, setCarregado] = useState(false);
-  const [tema, setTema] = useState<"claro" | "escuro">("escuro");
+  const [tema, setTema] = useState("escuro");
 
   const [texto, setTexto] = useState("");
-  const [prioridade, setPrioridade] = useState<Prioridade>("media");
+  const [prioridade, setPrioridade] = useState("media");
   const [agenda, setAgenda] = useState("");
   const [lembrete, setLembrete] = useState(false);
   const [listaAtiva, setListaAtiva] = useState("Geral");
   const [novaLista, setNovaLista] = useState("");
-  const [diaFiltro, setDiaFiltro] = useState<string | null>(null);
+  const [diaFiltro, setDiaFiltro] = useState(null);
   const [aviso, setAviso] = useState("");
+
+  const [editandoId, setEditandoId] = useState(null);
+  const [textoEdicao, setTextoEdicao] = useState("");
 
   useEffect(() => {
     try {
@@ -89,12 +79,12 @@ function Index() {
     });
   }, []);
 
-  const adicionar = async (e: FormEvent) => {
+  const adicionar = async (e) => {
     e.preventDefault();
     const t = texto.trim();
     if (!t) return;
     setAviso("");
-    const nova: Tarefa = {
+    const nova = {
       id: Date.now(),
       texto: t,
       concluida: false,
@@ -123,14 +113,31 @@ function Index() {
     setLembrete(false);
   };
 
-  const alternar = (id: number) =>
+  const alternar = (id) =>
     setTarefas((prev) => prev.map((t) => (t.id === id ? { ...t, concluida: !t.concluida } : t)));
-  const excluir = (id: number) => {
+  const excluir = (id) => {
     const t = tarefas.find((x) => x.id === id);
     if (t?.smsSid && t.smsStatus === "scheduled") cancelSms({ data: { sid: t.smsSid } }).catch(() => {});
+    if (editandoId === id) cancelarEdicao();
     setTarefas((prev) => prev.filter((x) => x.id !== id));
   };
-  const criarLista = (e: FormEvent) => {
+
+  const iniciarEdicao = (t) => {
+    setEditandoId(t.id);
+    setTextoEdicao(t.texto);
+  };
+  const cancelarEdicao = () => {
+    setEditandoId(null);
+    setTextoEdicao("");
+  };
+  const salvarEdicao = (id) => {
+    const t = textoEdicao.trim();
+    if (!t) return;
+    setTarefas((prev) => prev.map((x) => (x.id === id ? { ...x, texto: t } : x)));
+    cancelarEdicao();
+  };
+
+  const criarLista = (e) => {
     e.preventDefault();
     const n = novaLista.trim();
     if (!n || listas.includes(n)) return;
@@ -138,13 +145,13 @@ function Index() {
     setListaAtiva(n);
     setNovaLista("");
   };
-  const excluirLista = (n: string) => {
+  const excluirLista = (n) => {
     setListas(listas.filter((l) => l !== n));
     setTarefas((prev) => prev.filter((t) => t.lista !== n));
     setListaAtiva("Geral");
   };
 
-  const ordem: Record<Prioridade, number> = { alta: 0, media: 1, baixa: 2 };
+  const ordem = { alta: 0, media: 1, baixa: 2 };
   const visiveis = tarefas
     .filter((t) => t.lista === listaAtiva)
     .filter((t) => !diaFiltro || (t.agendadaPara && mesmoDia(new Date(t.agendadaPara), new Date(diaFiltro))))
@@ -288,13 +295,48 @@ function Index() {
               ) : (
                 <ul className="space-y-2">
                   {visiveis.map((t) => {
-                    const p = PRIORIDADES.find((x) => x.valor === t.prioridade)!;
+                    const p = PRIORIDADES.find((x) => x.valor === t.prioridade);
+                    const emEdicao = editandoId === t.id;
                     return (
                       <li key={t.id} className="relative flex items-start gap-3 overflow-hidden rounded-lg border bg-secondary/40 p-3 pl-4">
                         <span className={`absolute inset-y-0 left-0 w-1 ${BARRA[t.prioridade]}`} />
                         <input type="checkbox" checked={t.concluida} onChange={() => alternar(t.id)} aria-label="Marcar como concluída" className="mt-1 h-5 w-5 accent-primary" />
                         <div className="min-w-0 flex-1">
-                          <p className={`break-words ${t.concluida ? "text-muted-foreground line-through" : ""}`}>{t.texto}</p>
+                          {emEdicao ? (
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                salvarEdicao(t.id);
+                              }}
+                              className="flex flex-col gap-2 sm:flex-row"
+                            >
+                              <input
+                                value={textoEdicao}
+                                onChange={(e) => setTextoEdicao(e.target.value)}
+                                aria-label="Editar título da tarefa"
+                                autoFocus
+                                className="input-tech flex-1 py-2 text-sm"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="submit"
+                                  disabled={!textoEdicao.trim()}
+                                  className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  Salvar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={cancelarEdicao}
+                                  className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-secondary"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <p className={`break-words ${t.concluida ? "text-muted-foreground line-through" : ""}`}>{t.texto}</p>
+                          )}
                           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                             <span className={`rounded-full border px-2 ${p.classe}`}>{p.rotulo}</span>
                             <span>Adicionada em {fmt(t.criadaEm)}</span>
@@ -303,9 +345,16 @@ function Index() {
                             {t.smsStatus === "sent" && <span>SMS enviado</span>}
                           </div>
                         </div>
-                        <button onClick={() => excluir(t.id)} className="rounded-md px-3 py-1 text-sm font-medium text-destructive hover:bg-destructive/10">
-                          Excluir
-                        </button>
+                        {!emEdicao && (
+                          <div className="flex shrink-0 gap-1">
+                            <button onClick={() => iniciarEdicao(t)} className="rounded-md px-3 py-1 text-sm font-medium text-primary hover:bg-primary/10">
+                              Editar
+                            </button>
+                            <button onClick={() => excluir(t.id)} className="rounded-md px-3 py-1 text-sm font-medium text-destructive hover:bg-destructive/10">
+                              Excluir
+                            </button>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
@@ -319,7 +368,7 @@ function Index() {
   );
 }
 
-function Stat({ rotulo, valor, className = "" }: { rotulo: string; valor: number; className?: string }) {
+function Stat({ rotulo, valor, className = "" }) {
   return (
     <div className={`card-tech p-4 text-center ${className}`}>
       <p className="text-xs uppercase tracking-wider text-muted-foreground">{rotulo}</p>
