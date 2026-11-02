@@ -96,7 +96,7 @@ export const Route = createRootRouteWithContext()({
     scripts: [
       {
         children:
-          'try{var d=JSON.parse(localStorage.getItem("organizador")||"{}");if(d.tema!=="claro"){document.documentElement.classList.add("dark")}}catch(e){document.documentElement.classList.add("dark")}',
+          'try{var d=JSON.parse(localStorage.getItem("organizador")||"{}");if(d.tema==="escuro"){document.documentElement.classList.add("dark")}}catch(e){}',
       },
     ],
   }),
@@ -108,7 +108,7 @@ export const Route = createRootRouteWithContext()({
 
 function RootShell({ children }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
